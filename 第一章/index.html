@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能旅游助手</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: "Microsoft YaHei", sans-serif;
+            background: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            width: 100%;
+            max-width: 700px;
+        }
+        h1 {
+            text-align: center;
+            color: #1a1a1a;
+            margin-bottom: 8px;
+            font-size: 24px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #888;
+            font-size: 14px;
+            margin-bottom: 24px;
+        }
+        .input-group {
+            display: flex;
+            gap: 10px;
+        }
+        input[type="text"] {
+            flex: 1;
+            padding: 14px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 15px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        input[type="text"]:focus {
+            border-color: #4a90d9;
+        }
+        button {
+            padding: 14px 28px;
+            background: #4a90d9;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            cursor: pointer;
+            transition: background 0.2s;
+            white-space: nowrap;
+        }
+        button:hover {
+            background: #357abd;
+        }
+        button:disabled {
+            background: #a0c4e8;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 24px;
+            padding: 20px;
+            background: #fafafa;
+            border-radius: 10px;
+            border-left: 4px solid #4a90d9;
+            min-height: 80px;
+            font-size: 15px;
+            line-height: 1.8;
+            color: #333;
+            white-space: pre-wrap;
+            display: none;
+        }
+        .result.show {
+            display: block;
+        }
+        .loading {
+            text-align: center;
+            color: #888;
+            font-size: 14px;
+            margin-top: 20px;
+            display: none;
+        }
+        .loading.show {
+            display: block;
+        }
+        .loading::after {
+            content: "";
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #ccc;
+            border-top-color: #4a90d9;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+            margin-left: 8px;
+            vertical-align: middle;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .error {
+            border-left-color: #e74c3c;
+            background: #fef0ef;
+            color: #c0392b;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌍 智能旅游助手</h1>
+        <p class="subtitle">告诉我你想去哪里，我来帮你查天气、推荐景点和美食</p>
+
+        <div class="input-group">
+            <input type="text" id="promptInput" 
+                   placeholder="例如：我想去深圳旅游，预算20000，大概两天" 
+                   autofocus>
+            <button id="sendBtn" onclick="sendMessage()">发送</button>
+        </div>
+
+        <div class="loading" id="loading">正在思考中，请稍候</div>
+        <div class="result" id="result"></div>
+    </div>
+
+    <script>
+        const input = document.getElementById('promptInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const result = document.getElementById('result');
+        const loading = document.getElementById('loading');
+
+        input.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' && !e.isComposing) {
+                sendMessage();
+            }
+        });
+
+        async function sendMessage() {
+            const prompt = input.value.trim();
+            if (!prompt) {
+                alert('请输入内容');
+                return;
+            }
+
+            result.classList.remove('show', 'error');
+            result.textContent = '';
+            loading.classList.add('show');
+            sendBtn.disabled = true;
+            input.disabled = true;
+
+            try {
+                const response = await fetch('http://127.0.0.1:8000/agent', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt: prompt })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.detail || '请求失败');
+                }
+
+                result.textContent = data.answer;
+                result.classList.add('show');
+            } catch (err) {
+                result.textContent = '出错了：' + err.message;
+                result.classList.add('show', 'error');
+            } finally {
+                loading.classList.remove('show');
+                sendBtn.disabled = false;
+                input.disabled = false;
+                input.focus();
+            }
+        }
+    </script>
+</body>
+</html>
